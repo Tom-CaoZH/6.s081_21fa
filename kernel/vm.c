@@ -432,3 +432,56 @@ copyinstr(pagetable_t pagetable, char *dst, uint64 srcva, uint64 max)
     return -1;
   }
 }
+
+//print the pagetable of the process
+
+void vmprint_helper(pagetable_t pagetable,int flag)
+{
+    pte_t pte;
+    // there are 2^9 = 512 PTEs in a page table.
+    for(int i = 0; i < 512; i++){
+        if(flag == 3) break;
+        pte = pagetable[i];
+        if((pte & PTE_V) != 0){
+            for(int j = 0;j < flag; ++j) {
+                printf(".. ");
+            }
+            printf("..%d: pte %p pa %p\n",i,pte,PTE2PA(pte));
+            // this PTE points to a lower-level page table.
+            uint64 child = PTE2PA(pte);
+            flag++;
+            vmprint_helper((pagetable_t)child,flag);
+            flag--;
+        }
+    }
+}
+
+int 
+vmprint(pagetable_t pagetable) 
+{
+    printf("page table %p\n",pagetable);
+    vmprint_helper(pagetable,0);
+    return 0;
+}
+
+uint64 
+pgaccess(pagetable_t pagetable , uint64 base,uint64 size,uint64 mask)
+{
+    uint64 tmp_mask = 0;
+    pte_t *item;
+    for(int i = 0;i < size ; i++) {
+        item = walk(pagetable,base,0);
+        if(item == 0) 
+            panic("sys_pgaccess walk\n");
+        if(((*item) & PTE_A)){
+            tmp_mask = tmp_mask | (1 << i);
+            *item &= ~PTE_A;
+            /* *item = (((*item) & 0x2f) | (((*item) >> 7) << 7)); */
+        }
+        base += PGSIZE;
+    }
+    uint32 final_mask = (uint32)tmp_mask;
+    copyout(pagetable,mask,(char*)(&final_mask),sizeof(final_mask));
+
+    return 0;
+}

@@ -7,6 +7,7 @@
 #include "spinlock.h"
 #include "proc.h"
 
+
 uint64
 sys_exit(void)
 {
@@ -80,8 +81,19 @@ sys_sleep(void)
 int
 sys_pgaccess(void)
 {
-  // lab pgtbl: your code here.
-  return 0;
+    uint64 base; 
+    int size;
+    uint64 mask;
+    if(argaddr(0,&base) < 0) 
+        return -1;
+    if(argint(1,&size) < 0)
+        return -1;
+    if(argaddr(2,&mask) < 0)
+        return -1;
+
+    pagetable_t pagetable = myproc()->pagetable;
+    pgaccess(pagetable,base,size,mask);
+    return 0;
 }
 #endif
 

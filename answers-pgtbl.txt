@@ -1,0 +1,5 @@
+For the first question : 
+the syscalls that need to return some value and store some value
+
+For the second question : 
+
