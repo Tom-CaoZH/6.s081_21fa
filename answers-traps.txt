@@ -1,0 +1,29 @@
+Q1 :
+a0-a1 function argument/return value.
+a2-a7 function argument.
+a2 contains 13(arg for the printf function).
+
+Q2 :
+
+
+
+
+Q3 :
+
+
+
+
+Q4 :
+
+
+
+
+Q5 :
+57616 : 0xe110(寄存器a1中)
+%s 本质上其实就是指针，就像char*对应%s，所以打印的时候通过那个地址找到目标然后去解释数据，所以这里相当与就是来解释0x00646c72这段数据
+由于是小段机，所以在内存中排列为：72 / 6c / 64 分别对应r / l / d
+
+Q6 :
+the value that stored in the a2 register(random)
+
+

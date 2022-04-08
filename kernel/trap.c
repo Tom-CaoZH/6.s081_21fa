@@ -66,6 +66,26 @@ usertrap(void)
 
     syscall();
   } else if((which_dev = devintr()) != 0){
+    if(which_dev == 2) {
+        // This is a time interrupt , then add the record ticks
+        p->record_ticks++;
+        // call the handler
+        if(p->record_ticks == p->ticks && p->flag == 0) {
+            // remember to clear this record_ticks
+            p->record_ticks = 0;
+            p->epc = p->trapframe->epc;
+            p->ra = p->trapframe->ra;
+            p->sp = p->trapframe->sp;
+            p->s0 = p->trapframe->s0;
+            p->s1 = p->trapframe->s1;
+            p->a0 = p->trapframe->a0;
+            p->a1 = p->trapframe->a1;
+            p->a4 = p->trapframe->a4;
+            p->a5 = p->trapframe->a5;
+            p->flag = 1;
+            p->trapframe->epc = p->handler;
+        }
+    }
     // ok
   } else {
     printf("usertrap(): unexpected scause %p pid=%d\n", r_scause(), p->pid);
