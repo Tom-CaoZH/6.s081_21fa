@@ -68,9 +68,37 @@ usertrap(void)
   } else if((which_dev = devintr()) != 0){
     // ok
   } else {
-    printf("usertrap(): unexpected scause %p pid=%d\n", r_scause(), p->pid);
-    printf("            sepc=%p stval=%p\n", r_sepc(), r_stval());
-    p->killed = 1;
+    if(r_scause() == 15) {
+        // page fault
+        char* mem;
+        pte_t *pte;
+        uint64 va = r_stval();
+        uint64 pa;
+        uint flags;
+        if((pte = walk(p->pagetable, va, 0)) == 0)
+          panic("page_fault: pte should exist");
+        if((*pte & PTE_V) == 0)
+          panic("page_fault: page not present");
+        pa = PTE2PA(*pte);
+        *pte = (*pte) | PTE_W;  // set the PTE_W bit
+        flags = PTE_FLAGS(*pte);
+
+        if((mem = kalloc()) == 0) {
+            printf("page fault kalloc.\n");
+            p->killed = 1;
+        }
+        memmove(mem, (char*)pa, PGSIZE);
+        if(mappages(p->pagetable, va, PGSIZE, (uint64)mem, flags) != 0){
+            kfree(mem);
+            printf("page fault mappages.\n");
+            p->killed = 1;
+        }
+    }
+    else {
+        printf("usertrap(): unexpected scause %p pid=%d\n", r_scause(), p->pid);
+        printf("            sepc=%p stval=%p\n", r_sepc(), r_stval());
+        p->killed = 1;
+    }
   }
 
   if(p->killed)
