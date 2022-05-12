@@ -1,0 +1,4 @@
+break main
+break cowtest.c:181
+
+set exec-wrapper The wrapper for running programs is \

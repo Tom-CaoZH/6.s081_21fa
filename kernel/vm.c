@@ -310,16 +310,17 @@ uvmcopy(pagetable_t old, pagetable_t new, uint64 sz)
       panic("uvmcopy: pte should exist");
     if((*pte & PTE_V) == 0)
       panic("uvmcopy: page not present");
-    *pte = (*pte) ^ PTE_W;  // clear the PTE_W bit
+    *pte &= ~PTE_W;  // clear the PTE_W bit
     pa = PTE2PA(*pte);
     flags = PTE_FLAGS(*pte);
     /* if((mem = kalloc()) == 0) */
     /*   goto err; */
     /* memmove(mem, (char*)pa, PGSIZE); */
-    if(mappages(new, i, PGSIZE, pa, flags) != 0){
+    if(mappages(new, i, PGSIZE, (uint64)pa, flags) != 0){
       /* kfree(mem); */
       goto err;
     }
+    inc_refcount((void*)pa);
   }
   return 0;
 
@@ -350,6 +351,32 @@ copyout(pagetable_t pagetable, uint64 dstva, char *src, uint64 len)
   uint64 n, va0, pa0;
 
   while(len > 0){
+    // need to check everytimes
+    if(dstva >= MAXVA) 
+        return -1;
+    pte_t *pte;
+    if((pte = walk(pagetable, dstva, 0)) == 0)
+        return -1;
+    if((*pte & PTE_V) == 0 || (*pte & PTE_U) == 0)
+        return -1;
+
+    if(((*pte) & PTE_W )== 0) {
+        // COW page
+        char* mem;
+        uint64 pa;
+        pa = PTE2PA(*pte);
+
+        if((mem = kalloc()) == 0) {
+            printf("cow kalloc fail\n");
+            return -1;
+        }
+        memmove(mem, (char*)pa, PGSIZE);
+        // remember that at this place do not use the mappages ,this will 
+        // cause remap
+        *pte = PA2PTE(mem) | PTE_V | PTE_W | PTE_R | PTE_U | PTE_X;
+        kfree((void*)pa);
+    }
+
     va0 = PGROUNDDOWN(dstva);
     pa0 = walkaddr(pagetable, va0);
     if(pa0 == 0)
