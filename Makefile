@@ -280,12 +280,12 @@ GDBPORT = $(shell expr `id -u` % 5000 + 25000)
 QEMUGDB = $(shell if $(QEMU) -help | grep -q '^-gdb'; \
 	then echo "-gdb tcp::$(GDBPORT)"; \
 	else echo "-s -p $(GDBPORT)"; fi)
-ifndef CPUS
-CPUS := 3
-endif
-ifeq ($(LAB),fs)
+# ifndef CPUS
+# CPUS := 3
+# endif
+# ifeq ($(LAB),fs)
 CPUS := 1
-endif
+# endif
 
 FWDPORT = $(shell expr `id -u` % 5000 + 25999)
 
