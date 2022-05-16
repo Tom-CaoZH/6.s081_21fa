@@ -1,0 +1,1 @@
+When there are mutiple threads , there may exist a situation : more than one thread try to write the same mem and use a temporary variable to store it after they change the value then they assign the temporary variable to the mem , then there will be a race condition. At last , there will noly be one value left in the mem , the others will gone, this's the missing.
