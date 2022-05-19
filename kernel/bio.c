@@ -24,31 +24,40 @@
 #include "buf.h"
 
 struct {
-  struct spinlock lock;
+  struct {
+    struct spinlock lock;  
+
+    struct buf buf;
+  } bucket[NBUCKET];
+
   struct buf buf[NBUF];
 
-  // Linked list of all buffers, through prev/next.
-  // Sorted by how recently the buffer was used.
-  // head.next is most recent, head.prev is least.
-  struct buf head;
+  struct spinlock lock;  
 } bcache;
 
 void
 binit(void)
 {
-  struct buf *b;
-
-  initlock(&bcache.lock, "bcache");
+  struct buf *b = buf;
+  for(int i = 0;i < NBUF; ++i) {
+    int index = i%NBUCKET;
+    initlock(&bcache.lock, "bcache");
+    // bcache[index].head.prev = &bcache[index].head;
+    // bcache[index].head.next = &bcache[index].head;
+  }
 
   // Create linked list of buffers
-  bcache.head.prev = &bcache.head;
-  bcache.head.next = &bcache.head;
-  for(b = bcache.buf; b < bcache.buf+NBUF; b++){
-    b->next = bcache.head.next;
-    b->prev = &bcache.head;
-    initsleeplock(&b->lock, "buffer");
-    bcache.head.next->prev = b;
-    bcache.head.next = b;
+  for(int i = 0;i < NBUF; ++i) {
+    int index = i%NBUCKET;
+    // b->next = bcache[index].head.next;
+    // b->prev = &bcache[index].head;
+    // initsleeplock(&b->lock, "buffer");
+    // bcache[index].head.next->prev = b;
+    // bcache[index].head.next = b;
+    b++;
+
+  }
+  for(b = buf; b < buf+NBUF; b++){
   }
 }
 

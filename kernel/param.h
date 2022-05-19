@@ -12,3 +12,4 @@
 #define FSSIZE       1000  // size of file system in blocks
 #define MAXPATH      128   // maximum file path name
 #define NMEM         (PHYSTOP - (uint64)end)/NCPU  // the size of each cpu's free memory
+#define NBUCKET      13   // the number of the hash table's buckets
