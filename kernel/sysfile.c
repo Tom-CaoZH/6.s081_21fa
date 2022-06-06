@@ -289,7 +289,7 @@ sys_open(void)
   char path[MAXPATH];
   int fd, omode;
   struct file *f;
-  struct inode *ip;
+  struct inode *ip, *target_ip = 0;
   int n;
 
   if((n = argstr(0, path, MAXPATH)) < 0 || argint(1, &omode) < 0)
@@ -322,6 +322,54 @@ sys_open(void)
     return -1;
   }
 
+  if(ip->type == T_SYMLINK && (!(omode & O_NOFOLLOW))) {
+    printf("path : %s\n",path);
+    char target[MAXPATH];
+    struct inode *tmp;
+    uint record[30];
+    int index = 0;
+    if(readi(ip,0,(uint64)&target,0,sizeof(target)) != sizeof(target))
+      panic("open: syslink readi");
+    if((target_ip = namei(target)) == 0) {
+      iunlockput(ip);
+      end_op();
+      return -1;
+    }
+    printf("target : %s\n",target);
+    printf("target type: %d\n",target_ip->type);
+    record[index] = ip->inum;
+    index++;
+    // why the target_ip->type is 0
+    // there is typically one case : use the temp variable
+    while(target_ip->type == T_SYMLINK) {
+      // the check should be in front of the lock
+      for(int i = 0;i < index; ++i) {
+        if(record[i] == target_ip->inum) {
+          iunlockput(ip);
+          end_op();
+          return -1;
+        }
+      }
+      ilock(target_ip);
+      record[index] = target_ip->inum;
+      index++;
+      if(readi(target_ip,0,(uint64)&target,0,sizeof(target)) != sizeof(target))
+        panic("open: syslink readi");
+      iunlockput(target_ip);
+      printf("target : %s\n",target);
+      if((target_ip = namei(target)) == 0) {
+        iunlockput(ip);
+        end_op();
+        return -1;
+      }
+    }
+    ilock(target_ip);
+    // swap the two
+    tmp = target_ip;
+    target_ip = ip;
+    ip = tmp;
+  }
+
   if((f = filealloc()) == 0 || (fd = fdalloc(f)) < 0){
     if(f)
       fileclose(f);
@@ -346,6 +394,8 @@ sys_open(void)
   }
 
   iunlock(ip);
+  if(target_ip)
+    iunlock(target_ip);
   end_op();
 
   return fd;
@@ -483,4 +533,48 @@ sys_pipe(void)
     return -1;
   }
   return 0;
+}
+
+
+uint64
+sys_symlink(void)
+{
+  char sympath[MAXPATH], target[MAXPATH], name[DIRSIZ];
+  struct inode *dp, *ip;
+  if(argstr(0, target, MAXPATH) < 0 || argstr(1, sympath, MAXPATH) < 0)
+    return -1;
+
+  begin_op();
+  if((dp = nameiparent(sympath, name)) == 0)
+    goto bad;
+  ilock(dp);
+
+  // when return , remember to release the lock
+  if((ip = dirlookup(dp, name, 0)) != 0) {
+    iunlock(dp);
+    goto bad;
+  }
+
+  if((ip = ialloc(dp->dev, T_SYMLINK)) == 0)
+    panic("symlink: ialloc");
+
+  ilock(ip);
+  ip->nlink = 1;
+  // iupdate() is in the writei function . off is 0(start from the begin)
+  if(writei(ip,0,(uint64)&target,0,sizeof(target)) != sizeof(target))
+    panic("symlink: writei");
+
+  if(dirlink(dp, name, ip->inum) < 0)
+    panic("symlink: dirlink");
+
+  iunlockput(ip);
+  iunlockput(dp);
+
+  end_op();
+  return 0;
+
+bad :
+  end_op();
+  return -1;
+
 }

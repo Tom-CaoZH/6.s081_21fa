@@ -112,6 +112,7 @@ testsymlink(void)
   close(fd1);
   close(fd2);
 
+  printf("hello\n");
   fd1 = open("/testsymlink/4", O_CREATE | O_RDWR);
   if(fd1<0) fail("Failed to create 4\n");
   fd2 = open("/testsymlink/1", O_RDWR);
@@ -120,6 +121,7 @@ testsymlink(void)
   c = '#';
   r = write(fd2, &c, 1);
   if(r!=1) fail("Failed to write to 1\n");
+  printf("bye\n");
   r = read(fd1, &c2, 1);
   if(r!=1) fail("Failed to read from 4\n");
   if(c!=c2)

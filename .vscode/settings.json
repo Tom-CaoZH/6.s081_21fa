@@ -1,0 +1,10 @@
+{
+    "files.associations": {
+        "*.tcc": "c",
+        "random": "c",
+        "type_traits": "c",
+        "atomic": "c",
+        "fstream": "c",
+        "sstream": "c"
+    }
+}
