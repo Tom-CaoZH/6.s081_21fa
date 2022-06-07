@@ -254,8 +254,9 @@ iget(uint dev, uint inum)
       release(&itable.lock);
       return ip;
     }
-    if(empty == 0 && ip->ref == 0)    // Remember empty slot.
+    if(empty == 0 && ip->ref == 0) {
       empty = ip;
+    }    // Remember empty slot.
   }
 
   // Recycle an inode entry.

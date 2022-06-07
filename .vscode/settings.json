@@ -5,6 +5,22 @@
         "type_traits": "c",
         "atomic": "c",
         "fstream": "c",
-        "sstream": "c"
+        "sstream": "c",
+        "optional": "c",
+        "functional": "c",
+        "tuple": "c",
+        "string_view": "c",
+        "array": "c",
+        "deque": "c",
+        "string": "c",
+        "vector": "c",
+        "algorithm": "c",
+        "memory_resource": "c",
+        "memory": "c",
+        "initializer_list": "c",
+        "stdexcept": "c",
+        "utility": "c",
+        "bit": "c",
+        "new": "c"
     }
 }

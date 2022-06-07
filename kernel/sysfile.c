@@ -323,7 +323,6 @@ sys_open(void)
   }
 
   if(ip->type == T_SYMLINK && (!(omode & O_NOFOLLOW))) {
-    printf("path : %s\n",path);
     char target[MAXPATH];
     struct inode *tmp;
     uint record[30];
@@ -335,12 +334,14 @@ sys_open(void)
       end_op();
       return -1;
     }
-    printf("target : %s\n",target);
-    printf("target type: %d\n",target_ip->type);
     record[index] = ip->inum;
     index++;
     // why the target_ip->type is 0
     // there is typically one case : use the temp variable
+    // solved!
+    // just to get the data from disk
+    ilock(target_ip);
+    iunlock(target_ip);
     while(target_ip->type == T_SYMLINK) {
       // the check should be in front of the lock
       for(int i = 0;i < index; ++i) {
@@ -356,7 +357,6 @@ sys_open(void)
       if(readi(target_ip,0,(uint64)&target,0,sizeof(target)) != sizeof(target))
         panic("open: syslink readi");
       iunlockput(target_ip);
-      printf("target : %s\n",target);
       if((target_ip = namei(target)) == 0) {
         iunlockput(ip);
         end_op();
@@ -561,14 +561,16 @@ sys_symlink(void)
   ilock(ip);
   ip->nlink = 1;
   // iupdate() is in the writei function . off is 0(start from the begin)
+  // maybe this is the crucial position
   if(writei(ip,0,(uint64)&target,0,sizeof(target)) != sizeof(target))
     panic("symlink: writei");
 
+  iunlock(ip); 
   if(dirlink(dp, name, ip->inum) < 0)
     panic("symlink: dirlink");
 
-  iunlockput(ip);
   iunlockput(dp);
+  iput(ip);  // this is necessary
 
   end_op();
   return 0;
